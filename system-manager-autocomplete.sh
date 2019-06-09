@@ -8,7 +8,7 @@ _systemmanagerAutocomplete ()   #  By convention, the function name
     COMPREPLY=()   # Array variable storing the possible completions.
     cur=${COMP_WORDS[COMP_CWORD]}
     firstArg=${COMP_WORDS[1]}
-    COMPREPLY=( $( compgen -W "init create-users install-packages link-files list-groups list list-all-known list-all-unknown help version" -- $cur ) )
+    COMPREPLY=( $( compgen -W "init install link list-groups list-known list-installed list-uninstalled list-unknown clean -h -v --help --version" -- $cur ) )
     return 0
     
 }
