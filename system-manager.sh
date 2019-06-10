@@ -161,4 +161,9 @@ case "$1" in
     version | --version|-v)
         displayVersion
         ;;
+    *)
+        echo "Unknown args $*"
+        displayHelp
+        exit 1
+        ;;
 esac
