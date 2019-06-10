@@ -17,7 +17,13 @@ install [groups]
 Install the user specified groups. If blank the user can interactively select groups to install.
 .TP
 link
-Link files as specified in .links and .links_root. If the target exists and the files aren't the same, the user will be asked to confirm
+Link files as specified in .links and .links_root. If the target exists and the files aren't the same, the user will be asked to confirm.
+.TP
+link\-normal
+Link files as specified in .links If the target exists and the files aren't the same, the user will be asked to confirm.
+.TP
+link\-root
+Link files as specified in .links_root. If the target exists and the files aren't the same, the user will be asked to confirm.
 .TP
 list\-groups
 Outputs the list of user defined groups

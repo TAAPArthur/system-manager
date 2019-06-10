@@ -9,7 +9,9 @@
 #%Action:
 #%    init                          Executes the scripts in the .scripts in hooks.json
 #%    install [groups]              Install the user specified groups. If blank the user can interactively select groups to install.
-#%    link                          Link files as specified in .links and .links_root. If the target exists and the files aren't the same, the user will be asked to confirm
+#%    link                          Link files as specified in .links and .links_root. If the target exists and the files aren't the same, the user will be asked to confirm.
+#%    link-normal                   Link files as specified in .links If the target exists and the files aren't the same, the user will be asked to confirm.
+#%    link-root                     Link files as specified in .links_root. If the target exists and the files aren't the same, the user will be asked to confirm.
 #%    list-groups                   Outputs the list of user defined groups
 #%    list-installed                Outputs the list of packages installed than are in a user defined group
 #%    list-uninstalled              Outputs the list of packages in a user defined group that are not installed
@@ -50,10 +52,17 @@ getAllPackages(){
 getSedStr(){
     echo "s/([^ ]*) (.*)$/[[ \$(realpath \1) == \$(readlink \2\$(basename \1)) || \$(readlink -f \1) == \$(realpath \2) ]] || ( [[ \2 == *\/ ]] \&\& $1 mkdir -p \2 || $1 mkdir -p $(dirname \2); (diff -q \1 \2\/\$(basename \1) || diff -q \1 \2) \&\& $1 ln -sf \1 \2 || $1 ln -si \1 \2) /g"
 }
-linkFiles(){
+linkRoot(){
+    str='\(.key) \(.value|tostring)'
+    bash <(jq -r ".links_root|to_entries|map(\"$str\")|.[]"  $SYSTEM_CONFIG_DIR/hooks.json | sed -E "$(getSedStr sudo)")
+}
+linkNormal(){
     str='\(.key) \(.value|tostring)'
     bash <(jq -r ".links|to_entries|map(\"$str\")|.[]"  $SYSTEM_CONFIG_DIR/hooks.json | sed -E "$(getSedStr)")
-    bash <(jq -r ".links_root|to_entries|map(\"$str\")|.[]"  $SYSTEM_CONFIG_DIR/hooks.json | sed -E "$(getSedStr sudo)")
+}
+linkFiles(){
+    linkNormal
+    linkRoot
 }
 
 options=( $(jq -r 'keys | join(" ")' $SYSTEM_CONFIG_DIR/packages.json |sort))
@@ -117,6 +126,12 @@ case "$1" in
             $(jq "$hooks '' " $SYSTEM_CONFIG_DIR/hooks.json)
         fi
         ;;
+     link-normal)
+         linkNormal
+         ;;
+     link-root)
+         linkRoot
+         ;;
      link)
          linkFiles
          ;;
