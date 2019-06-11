@@ -7,6 +7,7 @@
 #%
 #%
 #%Action:
+#%    custom                        Interactively let the user to select which scripts to execute from .custom in hooks.json
 #%    init                          Executes the scripts in the .scripts in hooks.json
 #%    install [groups]              Install the user specified groups. If blank the user can interactively select groups to install.
 #%    link                          Link files as specified in .links and .links_root. If the target exists and the files aren't the same, the user will be asked to confirm.
@@ -14,14 +15,12 @@
 #%    link-root                     Link files as specified in .links_root. If the target exists and the files aren't the same, the user will be asked to confirm.
 #%    list-groups                   Outputs the list of user defined groups
 #%    list-installed                Outputs the list of packages installed than are in a user defined group
-#%    list-uninstalled              Outputs the list of packages in a user defined group that are not installed
 #%    list-known                    Outputs the list of packages that are in a user defined group
+#%    list-uninstalled              Outputs the list of packages in a user defined group that are not installed
 #%    list-unknown                  Outputs the list of packages installed than are not in a user defined group
 #%    -h, --help                    Print this help
 #%    -v, --version                 Print script information
 #%
-#%Examples:
-#%    ${SCRIPT_NAME} monitor             #start monitoring
 #%
 #================================================================
 #- IMPLEMENTATION
@@ -67,15 +66,22 @@ linkFiles(){
 
 options=( $(jq -r 'keys | join(" ")' $SYSTEM_CONFIG_DIR/packages.json |sort))
 menu() {
+    options=( $* )
     for i in ${!options[@]}; do
         printf "%3d %s) %s\n" $((i+1)) "${options[i]}" 1>&2
     done
 }
+selectCustom(){
+    selectFromMenu $(jq -r '.custom |  keys | join(" ")' $SYSTEM_CONFIG_DIR/hooks.json |sort) |xargs -I{} echo ".custom{}"
+}
 selectPackages(){
+    selectFromMenu $(jq -r 'keys | join(" ")' $SYSTEM_CONFIG_DIR/packages.json |sort)
+}
+selectFromMenu(){
     #taken from https://serverfault.com/questions/144939/multi-select-menu-in-bash-script
 
     while true; do
-        menu
+        menu $*
         read -rp "What do you want installed? " nums
         while read num; do
             if [[ $num == '*' ]]; then
@@ -103,10 +109,18 @@ selectPackages(){
         [[ "${choices[i]}" ]] && { echo ".${options[i]}"; }
     done
     return 0
-
 }
 
 case "$1" in
+    custom)
+        shift
+        args="$*"
+        if [[ -z "$args" ]]; then
+            args=$(echo $(selectCustom)|sed "s/ /, /g")
+            echo "Selected $args"
+        fi
+        jq -r "$args " $SYSTEM_CONFIG_DIR/hooks.json | bash
+        ;;
     init)
         jq -r '.scripts |join("; ")' $SYSTEM_CONFIG_DIR/hooks.json |bash
         ;;
@@ -118,7 +132,6 @@ case "$1" in
             echo "Selected $args"
         fi
         packages=$(jq -r "$args | flatten | join(\"\n\")" $SYSTEM_CONFIG_DIR/packages.json |sort)
-        set -xe
         ${PKG_MANAGER:-sudo pacman} -S $(echo $packages) --needed
 
         hooks=$(sort <(jq -r '.install_hooks | keys | join("\n")' $SYSTEM_CONFIG_DIR/hooks.json) <(echo $packages) |uniq -d | xargs -i{} '.{} + "; " + ')

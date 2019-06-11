@@ -2,7 +2,7 @@
 
 
 pkgname='system-manager'
-pkgver='0.4.1'
+pkgver='0.4.2'
 _language='en-US'
 pkgrel=1
 pkgdesc='System manager'
